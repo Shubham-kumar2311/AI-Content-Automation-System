@@ -88,8 +88,8 @@ Searches for viral reels in your niche using defined fields, extracts and limits
 
 1. Clone this repo:
    ```bash
-   git clone https://github.com/your-username/your-repo.git
-   cd your-repo
+   git clone https://github.com/Shubham-kumar2311/AI-Content-Automation-System.git
+   cd AI-Content-Automation-System
    ```
 
 2. Copy the environment example and fill in your keys:
@@ -119,7 +119,7 @@ Searches for viral reels in your niche using defined fields, extracts and limits
 ├── screenshots/
 │   ├── workflow.png
 │   ├── analysis_of_my_top_reels_flow.png.png
-│   ├── analysis_of_my_top_competitor_reels_flow.p...
+│   ├── analysis_of_my_top_competitor_reels_flow.png
 │   ├── analysis_of_top_niche_outlier.png
 │   ├── my_reel_analysis_1.png
 │   ├── my_reel_analysis_2.png
@@ -154,7 +154,3 @@ Each analyzed reel is scored across:
 - `summary` — brief overall analysis
 
 ---
-
-## 📄 License
-
-MIT — free to use, modify, and share.#
