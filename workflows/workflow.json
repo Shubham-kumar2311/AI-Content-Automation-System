@@ -1,0 +1,1323 @@
+{
+  "name": "Instagram_analysis",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtHour": 17
+            },
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -416,
+        272
+      ],
+      "id": "e3bb44da-1f56-441c-a8b4-b743ecbd6ff9",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1bff61f1-8168-4193-87b7-6db3928f7d82",
+              "name": "username",
+              "value": "fobet.media",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        16,
+        272
+      ],
+      "id": "3641fe16-266c-4d7a-a40b-7877c42a30ce",
+      "name": "username"
+    },
+    {
+      "parameters": {
+        "url": "https://instagram-scraper-20251.p.rapidapi.com/userreels/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "username_or_id",
+              "value": "=https://www.instagram.com/{{ $json.username }}/"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Rapidapi-Key",
+              "value": "---api_key---"
+            },
+            {
+              "name": "X-Rapidapi-Host",
+              "value": "instagram-scraper-20251.p.rapidapi.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        240,
+        0
+      ],
+      "id": "e1dbcd0a-af17-4ab9-986f-b411e07381e0",
+      "name": "get my reels"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.data;\n\n// find reels array inside response\nconst reels = data.items || data.reels || [];\n\nreels.sort((a, b) => b.play_count - a.play_count);\n\nreturn reels.map(r => ({\n  json: r\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        0
+      ],
+      "id": "6cf27036-bc04-415c-b0e6-e6f5b4c1b647",
+      "name": "sort by decreasing views"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        608,
+        0
+      ],
+      "id": "734ccff9-9bb0-483c-818b-08466f0e3403",
+      "name": "Limit reels"
+    },
+    {
+      "parameters": {
+        "url": "={{$json.video_url}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        864,
+        0
+      ],
+      "id": "8247f739-45e2-404a-b6cc-9fb358396b0b",
+      "name": "Download reels"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ---api_key---"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "whisper-large-v3"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1056,
+        0
+      ],
+      "id": "2bf5b44f-d1c1-45f4-b9f9-f52b84b0fc23",
+      "name": "Transcribe reels"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ---api_key---"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"openai/gpt-oss-120b:free\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an elite Instagram reel strategist and viral content analyst. Your job is to analyze short-form content performance psychology, hooks, storytelling, pacing, emotional triggers, retention mechanisms, and viral potential.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this Instagram Reel transcript.\\n\\nTranscript:\\n{{$json.text}}\\n\\nReturn ONLY valid JSON in this exact structure:\\n\\n{\\n  \\\"hook_type\\\": \\\"\\\",\\n  \\\"hook_strength\\\": 0,\\n  \\\"why_hook_works\\\": \\\"\\\",\\n  \\\"emotional_triggers\\\": [],\\n  \\\"retention_strategies\\\": [],\\n  \\\"storytelling_structure\\\": \\\"\\\",\\n  \\\"viral_mechanics\\\": [],\\n  \\\"target_audience\\\": [],\\n  \\\"viral_potential_score\\\": 0,\\n  \\\"improvements\\\": [],\\n  \\\"better_hook_suggestions\\\": [],\\n  \\\"cta_quality\\\": \\\"\\\",\\n  \\\"content_style\\\": \\\"\\\",\\n  \\\"niche\\\": \\\"\\\",\\n  \\\"summary\\\": \\\"\\\"\\n}\\n\\nRules:\\n- Return ONLY JSON\\n- No markdown\\n- No explanation text\\n- Scores must be between 1-10\\n- Arrays must always be arrays\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1232,
+        0
+      ],
+      "id": "5d2dcc9b-ba12-4219-8688-68def2f75e55",
+      "name": "Hook Analysis"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const data = JSON.parse(item.json.choices[0].message.content);\n\n  return {\n    json: {\n\n      hook_type: data.hook_type || \"\",\n      hook_strength: data.hook_strength || 0,\n      why_hook_works: data.why_hook_works || \"\",\n\n      emotional_triggers: (data.emotional_triggers || []).join(\", \"),\n      retention_strategies: (data.retention_strategies || []).join(\", \"),\n      storytelling_structure: data.storytelling_structure || \"\",\n\n      viral_mechanics: (data.viral_mechanics || []).join(\", \"),\n      target_audience: (data.target_audience || []).join(\", \"),\n\n      viral_potential_score: data.viral_potential_score || 0,\n\n      improvements: (data.improvements || []).join(\" | \"),\n      better_hook_suggestions: (data.better_hook_suggestions || []).join(\" | \"),\n\n      cta_quality: data.cta_quality || \"\",\n      content_style: data.content_style || \"\",\n      niche: data.niche || \"\",\n      summary: data.summary || \"\"\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        0
+      ],
+      "id": "fe56866f-791b-43bf-8b16-3b88d0b6739b",
+      "name": "Extract message"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  return {\n    json: {\n      username: item.json.username,\n      views: item.json.play_count,\n      likes: item.json.like_count,\n      comments: item.json.comment_count,\n      caption: item.json.caption?.text || \"\",\n      video_url: item.json.video_url,\n      thumbnail_url: item.json.thumbnail_url,\n      post_date: item.json.taken_at || item.json.created_at\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        272
+      ],
+      "id": "3cc6716b-1e68-4061-92fd-fbae853dcbe7",
+      "name": "Reels data"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2032,
+        256
+      ],
+      "id": "f574e8c6-e90a-4f0b-985f-1389222d3cf9",
+      "name": "Merge reel data & hook analysis"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1kH246dKR3r4mmzE_ON_77E4eNfEot2xed-0JARucdV4/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "My reels",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kH246dKR3r4mmzE_ON_77E4eNfEot2xed-0JARucdV4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "analysis",
+              "displayName": "analysis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "views",
+              "displayName": "views",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "likes",
+              "displayName": "likes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "comments",
+              "displayName": "comments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "caption",
+              "displayName": "caption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "video_url",
+              "displayName": "video_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "thumbnail_url",
+              "displayName": "thumbnail_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "post_date",
+              "displayName": "post_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2320,
+        256
+      ],
+      "id": "f7e4dc1a-e802-4462-b654-e69691d35b83",
+      "name": "Save to My reels",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZuTjmEhrCimIK4rk",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://instagram-scraper-20251.p.rapidapi.com/similarusers/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "username_or_id",
+              "value": "={{ $json.username }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Rapidapi-Key",
+              "value": "---api_key---"
+            },
+            {
+              "name": "X-Rapidapi-Host",
+              "value": "instagram-scraper-20251.p.rapidapi.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        240,
+        464
+      ],
+      "id": "3b0a3432-860e-4c97-a84e-8160bc5f2595",
+      "name": "Get competitors"
+    },
+    {
+      "parameters": {
+        "jsCode": "const users = $input.first().json.data.items || [];\n\nreturn users.map(user => ({\n  json: {\n    username: user.username,\n    full_name: user.full_name,\n    verified: user.is_verified\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        464
+      ],
+      "id": "db15ead5-906a-462b-b386-b35ca23d2895",
+      "name": "Extract username"
+    },
+    {
+      "parameters": {
+        "maxItems": 2
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        608,
+        464
+      ],
+      "id": "e79e0814-cd1b-4908-abee-54869859e0bf",
+      "name": "Limit competitors"
+    },
+    {
+      "parameters": {
+        "url": "https://instagram-scraper-20251.p.rapidapi.com/userreels/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "username_or_id",
+              "value": "=https://www.instagram.com/{{ $json.username }}/"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Rapidapi-Key",
+              "value": "---api_key---"
+            },
+            {
+              "name": "X-Rapidapi-Host",
+              "value": "instagram-scraper-20251.p.rapidapi.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        816
+      ],
+      "id": "c7792695-1d63-4586-b9da-73c2ceec2e73",
+      "name": "Gets competitor reels"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.data;\n\n// find reels array inside response\nconst reels = data.items || data.reels || [];\n\nreels.sort((a, b) => b.play_count - a.play_count);\n\nreturn reels.map(r => ({\n  json: r\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        816
+      ],
+      "id": "1656d747-90a6-4243-b3c3-b080f4341d2d",
+      "name": "sort by dec views"
+    },
+    {
+      "parameters": {
+        "maxItems": 3
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        800,
+        816
+      ],
+      "id": "148dbb8c-2211-40f5-9793-4b54289f49ca",
+      "name": "Limit competitor reels"
+    },
+    {
+      "parameters": {
+        "url": "={{$json.video_url}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        480
+      ],
+      "id": "3aefbeaa-2269-4c55-b1c1-64faace00998",
+      "name": "Download competitor reels"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ---api_key---"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "whisper-large-v3"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1344,
+        480
+      ],
+      "id": "128f070d-5383-48dd-aa22-6f1a3e497841",
+      "name": "Transcribe competitor reels"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ---api_key---"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"openai/gpt-oss-120b:free\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an elite Instagram reel strategist and competitor content analyst. You specialize in identifying viral patterns, hooks, audience psychology, storytelling, and growth strategies from short-form content.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze this competitor Instagram reel.\\n\\nTranscript:\\n{{$json.text}}\\n\\nReturn ONLY valid JSON in this exact format:\\n\\n{\\n  \\\"hook_type\\\": \\\"\\\",\\n  \\\"hook_strength\\\": 0,\\n  \\\"why_hook_works\\\": \\\"\\\",\\n  \\\"emotional_triggers\\\": [],\\n  \\\"retention_strategies\\\": [],\\n  \\\"storytelling_structure\\\": \\\"\\\",\\n  \\\"viral_mechanics\\\": [],\\n  \\\"cta_strategy\\\": \\\"\\\",\\n  \\\"audience_targeting\\\": [],\\n  \\\"editing_style\\\": [],\\n  \\\"strengths\\\": [],\\n  \\\"weaknesses\\\": [],\\n  \\\"reusable_content_ideas\\\": [],\\n  \\\"estimated_viral_score\\\": 0,\\n  \\\"summary\\\": \\\"\\\"\\n}\\n\\nRules:\\n- Return ONLY JSON\\n- No markdown\\n- No explanations\\n- Scores must be 1-10\\n- Arrays must always be arrays\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1536,
+        480
+      ],
+      "id": "d52f5630-d1e3-4af2-a1e4-5b4b6fc66ae1",
+      "name": "Competitor Hook analysis"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const data = JSON.parse(item.json.choices[0].message.content);\n\n  return {\n    json: {\n      hook_type: data.hook_type || \"\",\n      hook_strength: data.hook_strength || 0,\n      why_hook_works: data.why_hook_works || \"\",\n\n      emotional_triggers: (data.emotional_triggers || []).join(\", \"),\n      retention_strategies: (data.retention_strategies || []).join(\", \"),\n      storytelling_structure: data.storytelling_structure || \"\",\n\n      viral_mechanics: (data.viral_mechanics || []).join(\", \"),\n      cta_strategy: data.cta_strategy || \"\",\n\n      audience_targeting: (data.audience_targeting || []).join(\", \"),\n      editing_style: (data.editing_style || []).join(\", \"),\n\n      strengths: (data.strengths || []).join(\" | \"),\n      weaknesses: (data.weaknesses || []).join(\" | \"),\n\n      reusable_content_ideas: (data.reusable_content_ideas || []).join(\" | \"),\n\n      estimated_viral_score: data.estimated_viral_score || 0,\n\n      summary: data.summary || \"\"\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        480
+      ],
+      "id": "6760d78b-8a46-43f4-aeda-cfa923f7ce8a",
+      "name": "Extract message1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2080,
+        768
+      ],
+      "id": "6229e008-6091-4db0-97ef-03165b9c77bf",
+      "name": "Merge reel data & hook analysis of competitor"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1kH246dKR3r4mmzE_ON_77E4eNfEot2xed-0JARucdV4/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2009979393,
+          "mode": "list",
+          "cachedResultName": "Competitor List",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kH246dKR3r4mmzE_ON_77E4eNfEot2xed-0JARucdV4/edit#gid=2009979393"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2368,
+        768
+      ],
+      "id": "32c88e10-2bf0-4352-9e94-182bd6f29081",
+      "name": "Save to Competitor List",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZuTjmEhrCimIK4rk",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://instagram-scraper-20251.p.rapidapi.com/searchreels",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "keyword",
+              "value": "={{ $json.keyword }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-key",
+              "value": "={{ $json['X-Rapidapi-Key'] }}"
+            },
+            {
+              "name": "x-rapidapi-host",
+              "value": "instagram-scraper-20251.p.rapidapi.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        1248
+      ],
+      "id": "7ff7921f-d68c-476d-ac41-c8334f88c8bd",
+      "name": "Search Viral Reels"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.first().json.data.items || [];\n\nreturn items.map(reel => ({\n  json: {\n    username: reel.username || reel.user?.username || \"\",\n    caption: reel.caption?.text || \"\",\n    views: reel.play_count || 0,\n    likes: reel.like_count || 0,\n    comments: reel.comment_count || 0,\n    video_url: reel.video_versions?.[0]?.url || \"\",\n    thumbnail_url: reel.image_versions2?.candidates?.[0]?.url || reel.thumbnail_url || \"\",\n    reel_url: `https://instagram.com/reel/${reel.code}/`,\n    post_date: reel.taken_at_date || \"\"\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        1248
+      ],
+      "id": "0e0dc4e1-ac55-48c4-841e-83e08afe0496",
+      "name": "Extract Reels"
+    },
+    {
+      "parameters": {
+        "maxItems": 3
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        864,
+        1248
+      ],
+      "id": "ba0e1244-e324-4be9-8811-9067aeb12283",
+      "name": "Top Viral Reels"
+    },
+    {
+      "parameters": {
+        "url": "={{$json.video_url}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1088,
+        1248
+      ],
+      "id": "c4451251-9e08-452f-bdf7-e1891a68e933",
+      "name": "Download reels1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ---api_key---"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "whisper-large-v3"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1280,
+        1248
+      ],
+      "id": "c81a85e1-2aa1-49ef-8074-ae9c63d963a1",
+      "name": "Transcribe reels1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const data = JSON.parse(item.json.choices[0].message.content);\n\n  return {\n    json: {\n      hook_structure: data.hook_structure,\n      emotional_triggers: data.emotional_triggers.join(\", \"),\n      curiosity_pattern: data.curiosity_pattern,\n      retention_strategy: data.retention_strategy.join(\", \"),\n      cta_strategy: data.cta_strategy,\n      editing_style: data.editing_style.join(\", \"),\n      outside_niche_reason: data.outside_niche_reason,\n      reusable_ideas: data.reusable_ideas.join(\", \"),\n      viral_score: data.viral_score\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        1248
+      ],
+      "id": "ef8fa4be-c328-4326-8f49-9405de77ae62",
+      "name": "Clean AI Output"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ---api_key---"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"openai/gpt-oss-120b:free\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert viral content strategist and Instagram reel analyst. Always return ONLY valid JSON with no markdown or explanations.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze why this reel became a viral outlier.\\n\\nTranscript:\\n{{$json.text}}\\n\\nReturn ONLY this JSON format:\\n{\\n  \\\"hook_structure\\\": \\\"\\\",\\n  \\\"emotional_triggers\\\": [],\\n  \\\"curiosity_pattern\\\": \\\"\\\",\\n  \\\"retention_strategy\\\": [],\\n  \\\"cta_strategy\\\": \\\"\\\",\\n  \\\"editing_style\\\": [],\\n  \\\"outside_niche_reason\\\": \\\"\\\",\\n  \\\"reusable_ideas\\\": [],\\n  \\\"viral_score\\\": 0\\n}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1456,
+        1248
+      ],
+      "id": "e15af385-c5d9-4fa1-9d72-c5b62ecba459",
+      "name": "Analyze Outlier Reel"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  return {\n    json: {\n      username: item.json.username || \"\",\n      views: item.json.views || 0,\n      likes: item.json.likes || 0,\n      comments: item.json.comments || 0,\n      caption: item.json.caption || \"\",\n      video_url: item.json.video_url || \"\",\n      thumbnail_url: item.json.thumbnail_url || \"\",\n      reel_url: item.json.reel_url || \"\",\n      post_date: item.json.post_date || \"\"\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        1696
+      ],
+      "id": "04ceb8ce-8a32-4399-85e8-1a03f7f79af8",
+      "name": "Reels data1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2096,
+        1520
+      ],
+      "id": "e3c20af5-3dea-4a3e-9843-da7423b3eea4",
+      "name": "Merge reel data & hook analysis1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  { json: { keyword: \"business\" } },\n  { json: { keyword: \"marketing\" } },\n  { json: { keyword: \"ai\" } },\n  { json: { keyword: \"startup\" } },\n  { json: { keyword: \"productivity\" } }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        1248
+      ],
+      "id": "3b897503-734e-47de-bac8-7c7649ff4de3",
+      "name": "Fields of outlier"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1kH246dKR3r4mmzE_ON_77E4eNfEot2xed-0JARucdV4/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 688479720,
+          "mode": "list",
+          "cachedResultName": "Niche Outliers",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kH246dKR3r4mmzE_ON_77E4eNfEot2xed-0JARucdV4/edit#gid=688479720"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2368,
+        1520
+      ],
+      "id": "60ae6ce1-4713-4a0c-b05b-c34ad86871b3",
+      "name": "Save to Niche Outliers",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZuTjmEhrCimIK4rk",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  return {\n    json: {\n      username: item.json.user.username,\n      views: item.json.play_count,\n      likes: item.json.like_count,\n      comments: item.json.comment_count,\n      caption: item.json.caption?.text || \"\",\n      video_url: item.json.video_url,\n      thumbnail_url: item.json.thumbnail_url,\n      post_date: item.json.taken_at || item.json.created_at\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        880
+      ],
+      "id": "dc3ce308-e46a-4225-98ff-7461e9a0a64b",
+      "name": "Reel data"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "username",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fields of outlier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "username": {
+      "main": [
+        [
+          {
+            "node": "get my reels",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get competitors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get my reels": {
+      "main": [
+        [
+          {
+            "node": "sort by decreasing views",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sort by decreasing views": {
+      "main": [
+        [
+          {
+            "node": "Limit reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit reels": {
+      "main": [
+        [
+          {
+            "node": "Reels data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download reels": {
+      "main": [
+        [
+          {
+            "node": "Transcribe reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe reels": {
+      "main": [
+        [
+          {
+            "node": "Hook Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hook Analysis": {
+      "main": [
+        [
+          {
+            "node": "Extract message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract message": {
+      "main": [
+        [
+          {
+            "node": "Merge reel data & hook analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reels data": {
+      "main": [
+        [
+          {
+            "node": "Merge reel data & hook analysis",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge reel data & hook analysis": {
+      "main": [
+        [
+          {
+            "node": "Save to My reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get competitors": {
+      "main": [
+        [
+          {
+            "node": "Extract username",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract username": {
+      "main": [
+        [
+          {
+            "node": "Limit competitors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit competitors": {
+      "main": [
+        [
+          {
+            "node": "Gets competitor reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gets competitor reels": {
+      "main": [
+        [
+          {
+            "node": "sort by dec views",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sort by dec views": {
+      "main": [
+        [
+          {
+            "node": "Limit competitor reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit competitor reels": {
+      "main": [
+        [
+          {
+            "node": "Download competitor reels",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Reel data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download competitor reels": {
+      "main": [
+        [
+          {
+            "node": "Transcribe competitor reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe competitor reels": {
+      "main": [
+        [
+          {
+            "node": "Competitor Hook analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Competitor Hook analysis": {
+      "main": [
+        [
+          {
+            "node": "Extract message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract message1": {
+      "main": [
+        [
+          {
+            "node": "Merge reel data & hook analysis of competitor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge reel data & hook analysis of competitor": {
+      "main": [
+        [
+          {
+            "node": "Save to Competitor List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Viral Reels": {
+      "main": [
+        [
+          {
+            "node": "Extract Reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Reels": {
+      "main": [
+        [
+          {
+            "node": "Top Viral Reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download reels1": {
+      "main": [
+        [
+          {
+            "node": "Transcribe reels1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe reels1": {
+      "main": [
+        [
+          {
+            "node": "Analyze Outlier Reel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top Viral Reels": {
+      "main": [
+        [
+          {
+            "node": "Download reels1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Reels data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Outlier Reel": {
+      "main": [
+        [
+          {
+            "node": "Clean AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reels data1": {
+      "main": [
+        [
+          {
+            "node": "Merge reel data & hook analysis1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge reel data & hook analysis1": {
+      "main": [
+        [
+          {
+            "node": "Save to Niche Outliers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean AI Output": {
+      "main": [
+        [
+          {
+            "node": "Merge reel data & hook analysis1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fields of outlier": {
+      "main": [
+        [
+          {
+            "node": "Search Viral Reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reel data": {
+      "main": [
+        [
+          {
+            "node": "Merge reel data & hook analysis of competitor",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ecd7cb7f-91bd-4466-9553-44e2e8e29f94",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f8e168c5c290217c08498df585c7b48619a6e8068562ad3b5f689d65921b5532"
+  },
+  "id": "LuMmZ6Na9Nb5oPvI",
+  "tags": []
+}
