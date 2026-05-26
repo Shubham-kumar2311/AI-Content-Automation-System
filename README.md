@@ -1,10 +1,10 @@
-# 📱 Instagram Reels AI Analysis Workflow
+# Instagram Reels AI Analysis Workflow
 
 An automated **n8n** workflow that scrapes, transcribes, and AI-analyzes Instagram Reels — your own, your competitors', and viral niche outliers — then saves structured insights to Google Sheets on a weekly schedule.
 
 ---
 
-## 🗺️ Workflow Overview
+## Workflow Overview
 
 ![Workflow Overview](screenshots/workflow.png)
 
@@ -12,13 +12,13 @@ The automation runs **3 parallel pipelines** triggered weekly:
 
 | Pipeline | What it does | Output Sheet |
 |----------|-------------|--------------|
-| 🎬 My Reels | Fetches & analyzes your own top-performing reels | `My Reels` |
-| 👥 Competitor Reels | Scrapes competitor accounts and analyzes their hooks | `Competitor List` |
-| 🔥 Niche Outliers | Finds viral reels in your niche and reverse-engineers them | `Niche Outliers` |
+| My Reels | Fetches & analyzes your own top-performing reels | `My Reels` |
+| Competitor Reels | Scrapes competitor accounts and analyzes their hooks | `Competitor List` |
+| Niche Outliers | Finds viral reels in your niche and reverse-engineers them | `Niche Outliers` |
 
 ---
 
-## 🔄 Pipeline Breakdown
+## Pipeline Breakdown
 
 ### 1 — My Reels Analysis
 
@@ -51,7 +51,7 @@ Searches for viral reels in your niche using defined fields, extracts and limits
 
 ---
 
-## 📊 Sample Outputs
+## Sample Outputs
 
 ### My Reel Analysis
 ![My Reel Analysis 1](screenshots/my_reel_analysis_1.png)
@@ -62,7 +62,7 @@ Searches for viral reels in your niche using defined fields, extracts and limits
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Tool | Purpose |
 |------|---------|
@@ -74,7 +74,7 @@ Searches for viral reels in your niche using defined fields, extracts and limits
 
 ---
 
-## ⚙️ Setup
+## Setup
 
 ### Prerequisites
 
@@ -113,7 +113,7 @@ Searches for viral reels in your niche using defined fields, extracts and limits
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── screenshots/
@@ -133,7 +133,7 @@ Searches for viral reels in your niche using defined fields, extracts and limits
 
 ---
 
-## 🤖 AI Analysis Fields
+## AI Analysis Fields
 
 Each analyzed reel is scored across:
 
